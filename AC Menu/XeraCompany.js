@@ -1,5 +1,7 @@
 // Juelz's AC menu v3.1
+// I removed obfuscation from the menu so people can use it as a template for their own mods if they want, but the code is still pretty messy and not designed for reuse, so good luck with that
 // If you use my code give credits please
+// for questions or concerns contact me at juelz.muppet860@passinbox.com
 
 Il2Cpp.perform(() => {
   {
