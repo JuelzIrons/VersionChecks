@@ -1,0 +1,119 @@
+================================================================
+  AC AUTO SYMBOL MAPPER
+================================================================
+
+WHAT IT DOES
+------------
+Polls Steam for Animal Company build updates every 60s.
+On new build: downloads depot via SteamCMD, remaps UnityPlayer.dll symbols into Frida-Map.js, posts results + files to Discord webhook, and git pushes the updated live map.
+
+================================================================
+STEP 1 - INSTALL PYTHON
+================================================================
+1. Download Python 3.10+ from https://python.org/downloads
+2. During install, CHECK "Add Python to PATH"
+
+================================================================
+STEP 2 - INSTALL STEAMCMD
+================================================================
+1. Create folder: C:\steamcmd
+2. Download SteamCMD:
+       https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip
+3. Extract steamcmd.exe into C:\steamcmd
+4. Run C:\steamcmd\steamcmd.exe once to let it update itself.
+   It will download files and exit automatically.
+5. Verify path: C:\steamcmd\steamcmd.exe should exist.
+
+NOTE: You need a Steam account that OWNS the game (AppID 4551040) to download its depot.
+
+================================================================
+STEP 3 - INSTALL PYTHON DEPENDENCIES
+================================================================
+Open cmd in the script folder and run:
+
+    pip install requests
+
+That's the only third-party dependency.
+
+
+================================================================
+STEP 4 - CONFIGURE WATCHER.PY
+================================================================
+Open watcher.py in a text editor. Edit the CONFIG section at top:
+
+    STEAM_USER   = "YOUR_STEAM_USERNAME"
+      -> Your Steam login name (NOT display name or email)
+
+    WEBHOOK      = "YOUR_DISCORD_WEBHOOK_URL"
+      -> Discord channel webhook URL
+         (Channel Settings > Integrations > Webhooks > Copy URL)
+
+    POLL_SECONDS = 60
+      -> How often to check for updates (seconds). Default 60 is fine.
+
+    FAKE_UPDATE  = False
+      -> Set True to force one full remap cycle on startup (for testing).
+         Set back to False for normal use.
+
+Paths that may need changing if your layout differs:
+    STEAMCMD  = r"C:\steamcmd\steamcmd.exe"
+    LIVE_MAP  = path to your live Frida-Map.js
+    REPO_DIR  = path to your git repo root (for git push)
+
+
+================================================================
+STEP 5 - SET UP FOLDER STRUCTURE
+================================================================
+The script expects these files to exist before first run:
+
+    <script folder>\OLD\UnityPlayer.dll   <- previous known DLL
+    <script folder>\OLD\Frida-Map.js      <- previous known map
+
+These are used as the baseline for remapping. On first run after
+a real game update, populate OLD\ with the last known good files.
+
+The script creates these automatically:
+    <script folder>\output\               <- remapped outputs per build
+    <script folder>\state.json            <- tracks last seen buildid
+
+
+================================================================
+STEP 6 - FIRST RUN / STEAM GUARD
+================================================================
+SteamCMD may prompt for a Steam Guard code on first use.
+Run it manually once to authenticate:
+
+    C:\steamcmd\steamcmd.exe +login YOUR_USERNAME +quit
+
+Enter the Steam Guard code when prompted.
+After that, subsequent runs won't need it (session cached).
+
+
+================================================================
+STEP 7 - RUN THE WATCHER
+================================================================
+Open PowerShell in the script folder:
+
+    python watcher.py
+
+You will see timestamped logs like:
+    [2026-06-01 12:00:00] Watcher started. Polling buildid every 60s.
+    [2026-06-01 12:00:01] Baseline buildid = 15234567
+    [2026-06-01 12:01:01] No change (buildid 15234567)
+
+When an update is detected:
+    [2026-06-01 14:05:01] UPDATE: 15234567 -> 15240123
+    [2026-06-01 14:05:01] Downloading depot via steamcmd...
+    [2026-06-01 14:07:33] Remap done: 312/312 matched, unity=2022.3.41f1
+    [2026-06-01 14:07:34] Posted to Discord (200)
+    [2026-06-01 14:07:35] git pushed: AC update: build 15240123 (Unity 2022.3.41f1)
+
+To run it in the background (keeps running after you close terminal):
+    Start-Process python -ArgumentList "watcher.py" -WindowStyle Hidden
+
+Or use a scheduled task / NSSM to run it as a Windows service.
+
+
+================================================================
+Support beyond this wont be provided.
+This script is for advanced users. 
